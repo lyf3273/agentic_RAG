@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+import runlog
 from main import (
     engine_info,
     ensure_engine,
@@ -82,9 +83,14 @@ def packs() -> dict:
     return {"packs": knowledge_packs()}
 
 
+def _log_web_turn(question: str, answer: str, trace: list) -> None:
+    runlog.log_conversation(question, answer, trace, display=format_user_facing(answer))
+
+
 @app.post("/api/ask")
 def ask(body: AskBody) -> dict:
     answer, trace = handle_user_question(body.question)
+    _log_web_turn(body.question, answer, trace)
     return {
         "answer": format_user_facing(answer),
         "raw": answer,
@@ -110,6 +116,7 @@ async def ask_stream(q: str) -> StreamingResponse:
     def worker() -> None:
         try:
             answer, trace = handle_user_question(question, on_event=on_event)
+            _log_web_turn(question, answer, trace)
             on_event({
                 "type": "done",
                 "answer": format_user_facing(answer),
