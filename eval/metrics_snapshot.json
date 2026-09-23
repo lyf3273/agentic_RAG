@@ -1,0 +1,21 @@
+{
+  "dataset": "agent_book_qa.json",
+  "n": 100,
+  "retrieval": {
+    "hit@1": 0.17,
+    "mrr@1": 0.17,
+    "hit@5": 0.91,
+    "mrr@5": 0.4333,
+    "hit@10": 0.97,
+    "mrr@10": 0.4427,
+    "rerank_hit@5": 0.98,
+    "rerank_mrr@5": 0.915
+  },
+  "judge_avg": {
+    "faithfulness": 0.985,
+    "answer_relevancy": 0.95,
+    "context_recall": 0.8625,
+    "context_precision": 0.991
+  },
+  "note": "Gold-label evaluation on the AI Agent book corpus (multi-hop, architecture, ops). Snapshot copied into the public tree so README numbers are reproducible from this repo."
+}

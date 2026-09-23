@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Evidence Studio · Agentic RAG</title>
+  <style>
+    :root {
+      --bg: #0c1014;
+      --panel: #141a21;
+      --panel-2: #1b232d;
+      --line: #2a3542;
+      --ink: #e8eef5;
+      --muted: #8b9bb0;
+      --mint: #3ee0b4;
+      --amber: #e7c27d;
+      --rose: #ef8b8b;
+      --blue: #7eb6ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+      font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif; }
+    body { display: grid; grid-template-rows: auto 1fr auto; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; border-bottom: 1px solid var(--line); background: #0f141a;
+    }
+    .brand { display: flex; gap: 12px; align-items: baseline; }
+    .brand h1 { font-size: 16px; margin: 0; letter-spacing: 0.04em; }
+    .brand span { color: var(--muted); font-size: 12px; }
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px; padding: 4px 8px; border: 1px solid var(--line);
+      border-radius: 999px; color: var(--mint); background: #10241e;
+    }
+    .badge.warn { color: var(--amber); background: #2a2416; }
+    .badge.bad { color: var(--rose); background: #2a1616; }
+    main { display: grid; grid-template-columns: 1.4fr 0.9fr; min-height: 0; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    .chat, .side { overflow: auto; padding: 18px 20px; }
+    .side { border-left: 1px solid var(--line); background: var(--panel); }
+    .msg { max-width: 720px; margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; line-height: 1.55; }
+    .msg.user { background: var(--panel-2); border: 1px solid var(--line); margin-left: auto; }
+    .msg.bot { background: #10171f; border: 1px solid #22303c; }
+    .msg .who { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 18px; }
+    .chip {
+      cursor: pointer; border: 1px dashed var(--line); background: transparent;
+      color: var(--muted); border-radius: 8px; padding: 6px 10px; font-size: 12px;
+    }
+    .chip:hover { color: var(--mint); border-color: var(--mint); }
+    footer {
+      display: flex; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); background: #0f141a;
+    }
+    textarea {
+      flex: 1; resize: none; height: 52px; background: var(--panel-2); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font: inherit;
+    }
+    button.go {
+      width: 108px; border: 0; border-radius: 10px; background: var(--mint); color: #06241a;
+      font-weight: 700; cursor: pointer;
+    }
+    button.go:disabled { opacity: 0.5; cursor: wait; }
+    h2 { font-size: 12px; color: var(--amber); letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 10px; }
+    .step { padding: 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: #10161c; }
+    .step b { color: var(--blue); font-size: 12px; }
+    .step p { margin: 6px 0 0; font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+    .cite { display: inline-block; margin: 0 6px 6px 0; padding: 3px 8px; border-radius: 6px;
+      background: #2a2416; color: var(--amber); font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .empty { color: var(--muted); font-size: 13px; }
+    .err { color: var(--rose); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Evidence Studio</h1>
+      <span>ReAct · Hybrid RRF · Vision sidecar · chunk_id citations</span>
+    </div>
+    <div class="badges" id="badges"></div>
+  </header>
+  <main>
+    <section class="chat" id="chat">
+      <div class="msg bot">
+        <div class="who">SYSTEM</div>
+        知识库是《AI Agent 入门》。下面几个问题可以直接点。
+      </div>
+      <div class="chips">
+        <button class="chip" data-q="什么是 ReAct？它和工具调用循环有什么关系？">什么是 ReAct？</button>
+        <button class="chip" data-q="给长流程 Agent 设计上下文时，压缩、记忆和 RAG 各管什么？">上下文怎么设计</button>
+        <button class="chip" data-q="生产级 Agent 的 Harness 包含哪些层，工具安全怎么做？">Harness 与护栏</button>
+        <button class="chip" data-q="多 Agent 协作从编排到 handoff 的完整流程是什么？">多 Agent 协作</button>
+        <button class="chip" data-q="图3-9 混合检索与重排序流水线在讲什么？">看架构图</button>
+      </div>
+    </section>
+    <aside class="side">
+      <h2>Route / Trace</h2>
+      <div id="trace" class="empty">等待提问。复杂问题会展开 ReAct 多步。</div>
+      <h2 style="margin-top:22px">Citations</h2>
+      <div id="cites" class="empty">答案里的 [chunk_id=...] 会出现在这里。</div>
+    </aside>
+  </main>
+  <footer>
+    <textarea id="q" placeholder="问知识库… 例如：HNSW 和 BM25 各解决什么问题？"></textarea>
+    <button class="go" id="go">Ask</button>
+  </footer>
+  <script>
+    const chat = document.getElementById("chat");
+    const traceEl = document.getElementById("trace");
+    const citesEl = document.getElementById("cites");
+    const qEl = document.getElementById("q");
+    const go = document.getElementById("go");
+
+    function paintHealth(h) {
+      const badges = document.getElementById("badges");
+      const status = h.status || "";
+      const store = h.storage_label || h.storage || "faiss";
+      const storeClass = status ? "badge warn" : "badge";
+      const items = [
+        `<span class="${storeClass}">${status || store}</span>`,
+        `<span class="badge">${h.embed || "dashscope"}</span>`,
+        `<span class="badge">${(h.packs || []).length} packs</span>`,
+        `<span class="badge">${h.files || 0} docs</span>`
+      ];
+      badges.innerHTML = items.join("");
+    }
+
+    async function boot() {
+      try {
+        paintHealth(await fetch("/api/health").then(r => r.json()));
+      } catch (e) {
+        document.getElementById("badges").innerHTML = `<span class="badge bad">offline</span>`;
+      }
+    }
+
+    const healthStream = new EventSource("/api/health/stream");
+    healthStream.onmessage = (m) => paintHealth(JSON.parse(m.data));
+
+    function addMsg(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + (role === "user" ? "user" : "bot");
+      div.innerHTML = `<div class="who">${role === "user" ? "YOU" : "AGENT"}</div>` +
+        text.replace(/</g, "&lt;").replace(/\n/g, "<br>");
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    function renderTrace(events) {
+      if (!events.length) { traceEl.innerHTML = `<div class="empty">无轨迹</div>`; return; }
+      traceEl.innerHTML = events.map(ev => {
+        const title = ev.type + (ev.step ? " #" + ev.step : "") + (ev.route ? " · " + ev.route : "");
+        const body = ev.thought || ev.preview || ev.query || ev.message || ev.complexity || "";
+        return `<div class="step"><b>${title}</b><p>${String(body).slice(0, 480)}</p></div>`;
+      }).join("");
+    }
+
+    function renderCites(ids) {
+      if (!ids || !ids.length) { citesEl.innerHTML = `<div class="empty">没有 chunk_id</div>`; return; }
+      citesEl.innerHTML = ids.map(id => `<span class="cite">${id}</span>`).join("");
+    }
+
+    async function ask(text) {
+      const question = (text || qEl.value || "").trim();
+      if (!question) return;
+      qEl.value = "";
+      go.disabled = true;
+      addMsg("user", question);
+      const bot = addMsg("bot", "规划中…");
+      const events = [];
+      try {
+        const es = new EventSource("/api/ask/stream?q=" + encodeURIComponent(question));
+        es.onmessage = (m) => {
+          const ev = JSON.parse(m.data);
+          events.push(ev);
+          renderTrace(events.filter(e => e.type !== "done"));
+          if (ev.type === "thought") bot.innerHTML = `<div class="who">AGENT</div>` +
+            (ev.thought || "推理中…").replace(/</g, "&lt;").slice(0, 400);
+          if (ev.type === "done") {
+            bot.innerHTML = `<div class="who">AGENT</div>` + (ev.answer || "").replace(/</g, "&lt;").replace(/\n/g, "<br>");
+            renderCites(ev.citations || []);
+            es.close();
+            go.disabled = false;
+          }
+          if (ev.type === "error") {
+            bot.innerHTML = `<div class="who">AGENT</div><span class="err">${ev.message}</span>`;
+            es.close();
+            go.disabled = false;
+          }
+        };
+        es.onerror = () => {
+          bot.innerHTML = `<div class="who">AGENT</div><span class="err">连接中断</span>`;
+          es.close();
+          go.disabled = false;
+        };
+      } catch (err) {
+        bot.innerHTML = `<div class="who">AGENT</div><span class="err">${err}</span>`;
+        go.disabled = false;
+      }
+    }
+
+    go.addEventListener("click", () => ask());
+    qEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); }
+    });
+    document.querySelectorAll(".chip").forEach(btn => btn.addEventListener("click", () => ask(btn.dataset.q)));
+    boot();
+  </script>
+</body>
+</html>

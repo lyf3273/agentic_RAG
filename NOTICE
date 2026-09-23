@@ -1,0 +1,10 @@
+This project includes third-party content:
+
+- data/ai-agent-book/
+  Excerpted from https://github.com/bojieli/ai-agent-book
+  Copyright (c) 李博杰
+  Licensed under the Apache License, Version 2.0
+  See data/ai-agent-book/SOURCE.md
+
+You must retain the Apache-2.0 license and attribution when redistributing
+that corpus.

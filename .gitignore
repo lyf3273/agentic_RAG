@@ -1,0 +1,27 @@
+# 敏感信息
+.env
+*.pem
+*.key
+
+# 向量索引与持久化缓存 (超大文件，切勿提交)
+faiss_index/
+chroma_db/
+.cache/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# 运行日志与轨迹追踪
+log/
+react_traces/
+react_audit_logs/
+retrieval_audit_logs/
+*.log
+
+# 虚拟环境与 IDE
+venv/
+.venv/
+.idea/
+.vscode/
+.DS_Store
+web/_preview.png
