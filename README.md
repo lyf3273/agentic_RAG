@@ -11,7 +11,7 @@
 
 ## 快速开始
 
-不必创建虚拟环境。本机有 Python 3.10 及以上时，在 PowerShell 里克隆、安装依赖、填入 Key 即可。
+本机有 Python 3.10 及以上时，在 PowerShell 里克隆、安装依赖、填入 Key 即可。
 
 ```powershell
 git clone https://github.com/lyf3273/agentic_RAG.git
