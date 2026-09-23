@@ -62,8 +62,10 @@ python main.py ask 什么是 ReAct
 向量库默认是本地 FAISS，界面和终端只显示当前库名。需要云端存储时，在 `.env` 设置：
 
 ```env
-CHROMA_MODE=remote#faiss切换成remote
-CHROMA_HOST=127.0.0.1#此处填入云端chroma_ip
+# 默认 faiss。已有云端 Chroma 时再改成 remote
+CHROMA_MODE=faiss
+# 仅 remote 时使用，填云端地址，不要提交真实 IP
+CHROMA_HOST=127.0.0.1
 CHROMA_PORT=8000
 ```
 
@@ -102,29 +104,47 @@ CHROMA_PORT=8000
 ## 架构
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#dbeafe', 'primaryTextColor': '#1e3a8a', 'primaryBorderColor': '#2563eb', 'lineColor': '#475569', 'secondaryColor': '#dcfce7', 'tertiaryColor': '#fef3c7', 'clusterBkg': '#f8fafc', 'clusterBorder': '#94a3b8', 'fontFamily': 'Segoe UI, sans-serif'}}}%%
 flowchart TD
-    User([用户问题]) --> Router{查询规划}
-    Router -->|寒暄| Chitchat[直接回答]
-    Router -->|单点| DirectRAG[一次检索并引用]
-    Router -->|多跳| AgentLoop[ReAct 循环]
+    User(["用户问题"]) --> Router{"查询规划"}
+    Router -->|寒暄| Chitchat["直接回答"]
+    Router -->|单点| DirectRAG["一次检索并引用"]
+    Router -->|多跳| AgentLoop["ReAct 循环"]
 
-    subgraph Storage [向量库]
-        ChromaCloud[(云端 Chroma)] -.->|探活失败| FAISSLocal[(本地 FAISS)]
+    subgraph Storage ["向量库"]
+        ChromaCloud[("云端 Chroma")] -.->|探活失败| FAISSLocal[("本地 FAISS")]
         FAISSLocal -.->|探活恢复后后台切换| ChromaCloud
     end
 
-    subgraph HybridEngine [检索]
-        Rewrite[HyDE / Step-back / Multi-Query] --> BM25[BM25]
-        Rewrite --> Dense[1024 维向量]
-        BM25 --> RRF[RRF k=60]
+    subgraph HybridEngine ["检索"]
+        Rewrite["HyDE / Step-back / Multi-Query"] --> BM25["BM25"]
+        Rewrite --> Dense["1024 维向量"]
+        BM25 --> RRF["RRF k=60"]
         Dense --> RRF
-        RRF --> Rerank[qwen3-rerank]
-        Rerank --> Parent[父段回填去重]
+        RRF --> Rerank["qwen3-rerank"]
+        Rerank --> Parent["父段回填去重"]
     end
 
     AgentLoop <--> HybridEngine
-    HybridEngine -.-> Vision[SVG 渲染后 qwen3-vl-flash]
+    HybridEngine -.-> Vision["SVG 渲染后 qwen3-vl-flash"]
     AgentLoop --> Output(["带 chunk_id 的回答"])
+
+    classDef input fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef route fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef agent fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef store fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef retrieve fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef vision fill:#fce7f3,stroke:#db2777,color:#831843
+    classDef answer fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+
+    class User input
+    class Router route
+    class Chitchat,DirectRAG route
+    class AgentLoop agent
+    class ChromaCloud,FAISSLocal store
+    class Rewrite,BM25,Dense,RRF,Rerank,Parent retrieve
+    class Vision vision
+    class Output answer
 ```
 
 ## 目录
