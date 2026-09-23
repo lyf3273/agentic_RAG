@@ -2,6 +2,8 @@
 
 面向《AI Agent 入门》的多模态 Agentic RAG。一个通义千问 Key 驱动对话、视觉、精排和向量；默认使用本地 FAISS。
 
+本仓库在 Windows 上开发和验证。下面的命令按 Windows PowerShell 书写。
+
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Rerank Hit@5](https://img.shields.io/badge/Rerank%20Hit%405-98%25-brightgreen.svg)](eval/metrics_snapshot.json)
@@ -9,30 +11,19 @@
 
 ## 快速开始
 
-不必创建虚拟环境。本机有 Python 3.10 及以上时，克隆后安装依赖、填入 Key 即可。
+不必创建虚拟环境。本机有 Python 3.10 及以上时，在 PowerShell 里克隆、安装依赖、填入 Key 即可。
 
-```bash
+```powershell
 git clone https://github.com/lyf3273/agentic_RAG.git
 cd agentic_RAG
 pip install -r requirements.txt
 playwright install chromium
-```
-
-Windows 复制配置：
-
-```powershell
 copy .env.example .env
-```
-
-macOS / Linux 复制配置：
-
-```bash
-cp .env.example .env
 ```
 
 在 `.env` 填入 `DASHSCOPE_API_KEY`。推荐直接打开网页：
 
-```bash
+```powershell
 python main.py web
 ```
 
@@ -44,7 +35,7 @@ python main.py web
 
 终端用法：
 
-```bash
+```powershell
 python main.py doctor
 python main.py chat
 python main.py ask 什么是 ReAct
